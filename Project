@@ -1,0 +1,381 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <queue> // Include the queue library for prepared items
+
+using namespace std;
+
+// Class to represent an individual menu item
+class MenuItem {
+public:
+    string name;   // Name of the menu item
+    double price;  // Price of the menu item
+
+    // Constructor to initialize MenuItem
+    MenuItem(string n, double p) : name(n), price(p) {}
+};
+
+// Class to represent a category of menu items
+class MenuCategory {
+public:
+    string name;                  // Name of the category
+    vector<MenuItem> items;      // List of items in this category
+
+    // Constructor to initialize MenuCategory
+    MenuCategory(string n) : name(n) {}
+
+    // Function to add an item to the category
+    void addItem(MenuItem item) {
+        items.push_back(item);
+    }
+
+    // Function to display items in the category
+    void displayItems() {
+        cout << "Items in " << name << ":\n";
+        for (size_t i = 0; i < items.size(); i++) {
+            cout << i + 1 << ". " << items[i].name << " (₹" << items[i].price << ")\n";
+        }
+    }
+
+    // Function to get an item by index
+    MenuItem* getItem(int index) {
+        if (index >= 0 && index < items.size()) {
+            return &items[index]; // Return pointer to the item
+        }
+        return nullptr; // Item not found
+    }
+};
+
+// Class to represent the entire menu
+class Menu {
+public:
+    vector<MenuCategory> categories; // List of menu categories
+
+    // Function to add a new category to the menu
+    void addCategory(MenuCategory category) {
+        categories.push_back(category);
+    }
+
+    // Function to display all menu categories
+    void displayCategories() {
+        cout << "Menu Categories:\n";
+        for (size_t i = 0; i < categories.size(); i++) {
+            cout << i + 1 << ". " << categories[i].name << "\n";
+        }
+    }
+
+    // Function to get a category by index
+    MenuCategory* getCategory(int index) {
+        if (index >= 0 && index < categories.size()) {
+            return &categories[index]; // Return pointer to the category
+        }
+        return nullptr; // Category not found
+    }
+};
+
+// Class to represent an order placed by a table
+class Order {
+public:
+    int tableNumber;  // Table number for the order
+    vector<pair<MenuItem, int>> itemsOrdered; // Items ordered with their quantities
+    queue<pair<MenuItem, int>> preparedItems; // Queue for prepared items
+    string feedback;
+
+    // Constructor to set the table number
+    Order(int tableNum) : tableNumber(tableNum) {}
+
+    // Function to add an item to the order
+    void addItem(MenuItem item, int quantity) {
+        itemsOrdered.push_back(make_pair(item, quantity));
+    }
+
+    // Function to mark an item as prepared
+    void markAsPrepared(int index, int quantity) {
+        if (index >= 0 && index < itemsOrdered.size()) {
+            auto item = itemsOrdered[index];
+            if (quantity <= item.second) { // Check if quantity is valid
+                preparedItems.push(make_pair(item.first, quantity)); // Enqueue prepared items
+                itemsOrdered[index].second -= quantity; // Reduce the ordered quantity
+            } else {
+                cout << "Invalid quantity for " << item.first.name << ". Only " << item.second << " available.\n";
+            }
+        } else {
+            cout << "Invalid item index.\n";
+        }
+    }
+
+    // Function to serve prepared items to the table
+    void servePreparedItems() {
+        cout << "\nServing items for Table " << tableNumber << ":\n";
+        while (!preparedItems.empty()) {
+            auto prepared = preparedItems.front();
+            cout << prepared.second << " x " << prepared.first.name << " served.\n";
+            preparedItems.pop(); // Dequeue the item after serving
+        }
+    }
+
+    // Function to print the order details with GST
+    void printOrder() const {
+        if (itemsOrdered.empty()) {
+            cout << "No items ordered for Table " << tableNumber << ".\n";
+            return;
+        }
+        cout << "\nOrder for Table " << tableNumber << ":\n";
+        double total = 0.0; // Initialize total cost
+        int totalCount = 0; // Initialize total item count
+        for (size_t i = 0; i < itemsOrdered.size(); i++) {
+            double itemTotal = itemsOrdered[i].first.price * itemsOrdered[i].second; // Calculate item total
+            cout << i + 1 << ". " << itemsOrdered[i].second << " x " << itemsOrdered[i].first.name
+                << " - ₹" << itemTotal << "\n";
+            total += itemTotal; // Accumulate total cost
+            totalCount += itemsOrdered[i].second; // Counting total items
+        }
+
+        double gst = total * 0.18; // Calculate 18% GST
+        double grandTotal = total + gst; // Total with GST
+
+        cout << "Total items ordered: " << totalCount << "\n";
+        cout << "Subtotal: ₹" << total << "\n";
+        cout << "GST (18%): ₹" << gst << "\n";
+        cout << "Grand Total: ₹" << grandTotal << "\n";
+    }
+
+    // Function to collect feedback from the customer
+    void collectFeedback() {
+        cout << "\nWe hope you enjoyed your meal at Table " << tableNumber << "!\n";
+        cout << "Please leave your feedback: ";
+        cin.ignore(); // Clear input buffer
+        getline(cin, feedback); // Capture feedback input
+        cout << "You entered: " << feedback << "\n"; // Debugging line
+        cout << "Thank you for your feedback!\n";
+    }
+
+    // displayFeedback method
+    void displayFeedback() const {
+        cout << "Feedback: " << feedback << "\n"; // Debugging line
+        if (!feedback.empty()) {
+            cout << "\nFeedback for Table " << tableNumber << ":\n";
+            cout << feedback << "\n";
+        } else {
+            cout << "No feedback received for Table " << tableNumber << ".\n";
+        }
+    }
+
+    // Function to handle payment
+    void pay() {
+        double total = 0.0;
+        for (size_t i = 0; i < itemsOrdered.size(); i++) {
+            total += itemsOrdered[i].first.price * itemsOrdered[i].second;
+        }
+
+        double gst = total * 0.18; // Calculate GST
+        double grandTotal = total + gst; // Total amount to pay
+        cout << "\nPayment for Table " << tableNumber << ":\n";
+        //cout << "\nTotal payable (with GST): ₹" << grandTotal << "\n";
+        cout << "Select payment method:\n";
+        cout << "1. Cash\n";
+        cout << "2. Card\n";
+        cout << "3. UPI\n";
+        int paymentOption;
+        cout << "Enter your choice (1/2/3): ";
+        cin >> paymentOption;
+
+        switch (paymentOption) {
+            case 1:
+                cout << "Payment made via Cash. Thank you!\n";
+                break;
+            case 2:
+                cout << "Payment made via Card. Thank you!\n";
+                break;
+            case 3:
+                cout << "Payment made via UPI. Thank you!\n";
+                break;
+            default:
+                cout << "Invalid payment option!\n";
+                break;
+        }
+    }
+};
+
+// Function to handle the order taking process
+void takeOrder(Menu& menu, Order& order) {
+    while (true) {
+        menu.displayCategories(); // Display menu categories
+        int categoryIndex;
+        cout << "\nSelect a category (or enter 0 to finish): ";
+        cin >> categoryIndex;
+        cout<<endl;
+        if (categoryIndex == 0) {
+            break; // Exit order taking if user chooses to finish
+        }
+
+        MenuCategory* category = menu.getCategory(categoryIndex - 1); // Get selected category
+        if (category) {
+            while (true) {
+                category->displayItems(); // Display items in the selected category
+                int itemIndex;
+                cout << "\nSelect an item to order (or enter 0 to go back): ";
+                cin >> itemIndex;
+
+                if (itemIndex == 0) {
+                    break; // Go back to category selection
+                }
+
+                MenuItem* item = category->getItem(itemIndex - 1); // Get selected item
+                if (item) {
+                    int quantity;
+                    cout << "Enter quantity for " << item->name << ": ";
+                    cin >> quantity; // Input quantity
+                    order.addItem(*item, quantity); // Add item to the order
+                } else {
+                    cout << "Item not found.\n";
+                }
+
+                string option;
+                cout << "\nWould you like to order more from this category? (yes/no): \n";
+                cin >> option;
+                cout<<endl;
+                if (option == "no") {
+                    break; // Exit this category to go back to categories
+                }
+            }
+        } else {
+            cout << "Category not found.\n";
+        }
+    }
+}
+
+int main() {
+    Menu menu; // Create a menu object
+
+    // Adding categories and items to the menu
+    MenuCategory starters("Starters");
+    starters.addItem(MenuItem("Vegetable Pakora", 90));
+    starters.addItem(MenuItem("Samosa", 50));
+    starters.addItem(MenuItem("Paneer Tikka", 150));
+    starters.addItem(MenuItem("Hara Bhara Kabab", 120));
+    starters.addItem(MenuItem("Spring Roll", 110));
+    menu.addCategory(starters);
+
+    MenuCategory sabjis("Sabjis");
+    sabjis.addItem(MenuItem("Paneer Butter Masala", 180));
+    sabjis.addItem(MenuItem("Aloo Gobi", 130));
+    sabjis.addItem(MenuItem("Chole Masala", 140));
+    sabjis.addItem(MenuItem("Palak Paneer", 170));
+    sabjis.addItem(MenuItem("Mix Vegetable", 130));
+    sabjis.addItem(MenuItem("Baingan Bharta", 140));
+    sabjis.addItem(MenuItem("Bhindi Masala", 150));
+    sabjis.addItem(MenuItem("Methi Malai Matar", 160));
+    menu.addCategory(sabjis);
+
+    MenuCategory dal("Dal");
+    dal.addItem(MenuItem("Dal Tadka", 130));
+    dal.addItem(MenuItem("Dal Makhani", 160));
+    dal.addItem(MenuItem("Yellow Dal", 120));
+    dal.addItem(MenuItem("Mixed Dal", 140));
+    menu.addCategory(dal);
+
+    MenuCategory breads("Breads");
+    breads.addItem(MenuItem("Roti", 45));
+    breads.addItem(MenuItem("Butter Naan", 60));
+    breads.addItem(MenuItem("Garlic Naan", 70));
+    breads.addItem(MenuItem("Missi Roti", 55));
+    breads.addItem(MenuItem("Lachha Paratha", 70));
+    breads.addItem(MenuItem("Tandoori Roti", 50));
+    menu.addCategory(breads);
+
+    MenuCategory riceAndBiryani("Rice and Biryani");
+    riceAndBiryani.addItem(MenuItem("Steamed Rice", 90));
+    riceAndBiryani.addItem(MenuItem("Jeera Rice", 120));
+    riceAndBiryani.addItem(MenuItem("Vegetable Pulao", 140));
+    riceAndBiryani.addItem(MenuItem("Vegetable Biryani", 180));
+    menu.addCategory(riceAndBiryani);
+
+    MenuCategory sideDishes("Side Dishes");
+    sideDishes.addItem(MenuItem("Raita", 60));
+    sideDishes.addItem(MenuItem("Papad", 20));
+    sideDishes.addItem(MenuItem("Salad", 30));
+    sideDishes.addItem(MenuItem("Pickle", 10));
+    menu.addCategory(sideDishes);
+
+    MenuCategory desserts("Desserts");
+    desserts.addItem(MenuItem("Gulab Jamun", 50));
+    desserts.addItem(MenuItem("Ras Malai", 70));
+    desserts.addItem(MenuItem("Ice Cream", 60));
+    desserts.addItem(MenuItem("Fruit Salad", 90));
+    menu.addCategory(desserts);
+
+    MenuCategory beverages("Beverages");
+    beverages.addItem(MenuItem("Masala Chai", 40));
+    beverages.addItem(MenuItem("Lassi", 60));
+    beverages.addItem(MenuItem("Buttermilk", 50));
+    beverages.addItem(MenuItem("Nimbu Pani", 30));
+    beverages.addItem(MenuItem("Rose Sharbat", 45));
+    menu.addCategory(beverages);
+
+
+    vector<Order> orders; // Vector to store orders for different tables
+    for (int i = 1; i <= 5; i++) {
+        cout << "Taking order for Table " << i << ":\n";
+        Order order(i); // Create a new order for the table
+        takeOrder(menu, order); // Function to take the order
+        orders.push_back(order); // Add order to the orders vector
+    }
+
+    // Print all orders for the tables
+    for (const auto& order : orders) {
+        order.printOrder();
+        cout<<"Bill Generated\n";
+        cout<<endl;
+    }
+
+    // Mark items as prepared and serve them
+    while (true) {
+        int tableNumber;
+        cout << "\nEnter Table Number to mark items as prepared (or 0 to finish): ";
+        cin >> tableNumber;
+
+        if (tableNumber == 0) {
+            for (auto& order : orders) {
+                order.pay();
+                order.collectFeedback();
+            }
+            break;
+        }
+
+        if (tableNumber < 1 || tableNumber > 5) {
+            cout << "Invalid table number. Please enter a valid table number (1-5).\n";
+            continue;
+        }
+
+        for (auto& order : orders) {
+            if (order.tableNumber == tableNumber) {
+                while (true) {
+                    order.printOrder();
+                    int itemIndex;
+                    cout << "\nEnter item number to mark as prepared (or -1 to finish): ";
+                    cin >> itemIndex;
+
+                    if (itemIndex == -1) {
+                        break;
+                    }
+
+                    int quantity;
+                    cout << "Enter quantity: ";
+                    cin >> quantity;
+
+                    order.markAsPrepared(itemIndex - 1, quantity);
+                }
+
+                order.servePreparedItems();
+                break;
+            }
+        }
+    }
+
+    // Display feedback
+    for (const auto& order : orders) {
+        order.displayFeedback();
+    }
+    return 0;
+}
